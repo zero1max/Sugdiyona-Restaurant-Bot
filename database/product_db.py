@@ -10,10 +10,10 @@ class Database_Product:
     shopping_carts: dict = None
 
     def __post_init__(self):
-        self.connect = sqlite3.connect('product.db')  # 'product.db' ma'lumotlar bazasi bilan ulanish
-        self.cursor = self.connect.cursor()  # Ma'lumotlar bazasi uchun kursorni yaratish
-        self.shopping_carts = {}  # Savatchalar lug'ati
-        self.current_product_id = 0  # Hozirgi mahsulot ID
+        self.connect = sqlite3.connect('product.db')  
+        self.cursor = self.connect.cursor()  
+        self.shopping_carts = {}  
+        self.current_product_id = 0  
 
     def create_table(self):
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS products(
@@ -24,34 +24,34 @@ class Database_Product:
             image TEXT NOT NULL,
             category TEXT NOT NULL
         )''')
-        self.connect.commit()  # O'zgarishlarni saqlash
+        self.connect.commit()  
 
     def add_products(self, name, price, description, image, category):
         self.cursor.execute("INSERT INTO products (name, price, description, image, category) VALUES (?, ?, ?, ?, ?)",
                             (name, price, description, image, category))
-        self.connect.commit()  # O'zgarishlarni saqlash
+        self.connect.commit() 
 
     def get_all_products(self):
         self.cursor.execute("SELECT id, name, price FROM products")
-        return self.cursor.fetchall()  # Barcha mahsulotlarni qaytarish
+        return self.cursor.fetchall()  
 
     def delete_product(self, product_id):
         self.cursor.execute("DELETE FROM products WHERE id=?", (product_id,))
-        self.connect.commit()  # O'zgarishlarni saqlash
-        return self.cursor.rowcount > 0  # O'chirilgan mahsulotlar sonini qaytarish
+        self.connect.commit()
+        return self.cursor.rowcount > 0 
 
     def update_product(self, id, product_name, description, price, image, category):
         self.cursor.execute("UPDATE products SET name = ?, description = ?, price = ?, image = ?, category = ? WHERE id = ?",
                             (product_name, description, price, image, category, id))
-        self.connect.commit()  # O'zgarishlarni saqlash
+        self.connect.commit()  
 
     def get_products_by_category(self, category):
         self.cursor.execute("SELECT * FROM products WHERE category=?", (category,))
-        return self.cursor.fetchall()  # Ma'lum bir kategoriya bo'yicha mahsulotlarni qaytarish
+        return self.cursor.fetchall()  
 
     def get_categories(self):
         self.cursor.execute("SELECT DISTINCT category FROM products")
-        return [row[0] for row in self.cursor.fetchall()]  # Barcha kategoriyalarni qaytarish
+        return [row[0] for row in self.cursor.fetchall()]  
 
     def select_product_by_id(self, product_id):
         self.cursor.execute("SELECT * FROM products WHERE id = ?", (product_id,))
@@ -94,7 +94,7 @@ class Database_Product:
                     product_name = product[1]
                     price = product[2]
                     total_price = price * quantity
-                    total_sum += total_price  # Umumiy summaga qo'shish
+                    total_sum += total_price  
                     result.append(f"{product_name}: {quantity} x {price} = {total_price} so'm")
                 else:
                     result.append(f"Mahsulot {product_id} topilmadi")
@@ -111,12 +111,10 @@ class Database_Product:
             cart = self.shopping_carts[user_id]
             if product_id in cart:
                 new_quantity = cart[product_id] + quantity_change
-                # Ensure the quantity is not negative
                 if new_quantity < 1:
-                    new_quantity = 1  # Minimum quantity should be 1
+                    new_quantity = 1  
                 cart[product_id] = new_quantity
             else:
-                # If the product is not in the cart, add it with the new quantity
                 cart[product_id] = quantity_change if quantity_change > 0 else 1
         else:
             self.shopping_carts[user_id] = {product_id: quantity_change if quantity_change > 0 else 1}
@@ -126,11 +124,11 @@ class Database_Product:
         """Return the current quantity of a product in the user's cart."""
         if user_id in self.shopping_carts and product_id in self.shopping_carts[user_id]:
             return self.shopping_carts[user_id][product_id]
-        return 0  # If product is not in the cart, return 0
+        return 0  
 
 
     def close(self):
         if self.cursor:
-            self.cursor.close()  # Kursorni yopish
+            self.cursor.close() 
         if self.connect:
-            self.connect.close()  # Ulanishni yopish
+            self.connect.close()  

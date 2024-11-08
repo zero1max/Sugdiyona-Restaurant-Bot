@@ -22,7 +22,6 @@ class Database_News:
         self.connect.commit()
 
     def add_news(self, title, description, image):
-        # Yangilik qo'shish
         self.cursor.execute("INSERT INTO news (title, description, image) VALUES (?, ?, ?)",
                             (title, description, image))
         self.connect.commit()
