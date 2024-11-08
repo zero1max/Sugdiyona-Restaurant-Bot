@@ -61,42 +61,6 @@ class Database_Product:
         return product
 
 
-    def set_current_category(self, category):
-        self.current_category = category  # Hozirgi kategoriyani o'rnatish
-        self.current_product_id = self.get_min_product_id_for_category(category)  # Minimal mahsulot ID ni olish
-
-    def get_min_product_id_for_category(self, category):
-        self.cursor.execute("SELECT MIN(id) FROM products WHERE category=?", (category,))
-        min_id = self.cursor.fetchone()[0]
-        return min_id if min_id is not None else 0  # Minimal mahsulot ID ni qaytarish
-
-    def get_max_product_id_for_category(self, category):
-        self.cursor.execute("SELECT MAX(id) FROM products WHERE category=?", (category,))
-        max_id = self.cursor.fetchone()[0]
-        return max_id if max_id is not None else 0  # Maksimal mahsulot ID ni qaytarish
-
-    def select_next_product(self):
-        self.current_product_id += 1
-        
-        product = self.select_product_by_id(self.current_product_id)
-        
-        if not product and self.current_category:
-            self.current_product_id = self.get_min_product_id_for_category(self.current_category)
-            product = self.select_product_by_id(self.current_product_id)
-        
-        return product  # Keyingi mahsulotni qaytarish
-    
-    def select_previous_product(self):
-        self.current_product_id -= 1
-        
-        product = self.select_product_by_id(self.current_product_id)
-
-        if not product and self.current_category:
-            self.current_product_id = self.get_max_product_id_for_category(self.current_category)
-            product = self.select_product_by_id(self.current_product_id)
-        
-        return product  # Oldingi mahsulotni qaytarish
-
     @staticmethod
     def add_to_cart(shopping_carts, user_id, product_id, quantity=1):
         if user_id not in shopping_carts:
@@ -105,56 +69,58 @@ class Database_Product:
         if product_id in cart:
             cart[product_id] += quantity
         else:
-            cart[product_id] = quantity  # Savatchaga mahsulot qo'shish
+            cart[product_id] = quantity
 
     
     @staticmethod
     def remove_from_cart(shopping_carts, user_id, product_id, quantity=1):
-        # Check if the user exists in the shopping cart
-        if user_id in shopping_carts:
+        if user_id in shopping_carts and product_id in shopping_carts[user_id]:
             cart = shopping_carts[user_id]
-
-            # Check if the product exists in the user's cart
-            if product_id in cart:
-                # If the product quantity is greater than the requested quantity, reduce the quantity
-                if cart[product_id] > quantity:
-                    cart[product_id] -= quantity
-                else:
-                    # Otherwise, remove the product from the cart
-                    del cart[product_id]
-                return True  # Indicate the product was successfully removed
-        return False  # If the user or product does not exist in the cart
+            if cart[product_id] > quantity:
+                cart[product_id] -= quantity
+            else:
+                del cart[product_id]
 
     
     def show_cart(self, user_id):
-        """Savatchadagi mahsulotlarni ko'rsatish."""
         if user_id in self.shopping_carts:
             cart = self.shopping_carts[user_id]
-            print(cart)
-            result = []
+            result = ["<b>Sizning savatingizdagi mahsulotlar:</b>\n"]
+            total_sum = 0
+            
             for product_id, quantity in cart.items():
                 product = self.select_product_by_id(product_id)
                 if product:
-                    product_name = product[1]  # Mahsulot nomi
-                    price = product[2]  # Mahsulot narxi
+                    product_name = product[1]
+                    price = product[2]
                     total_price = price * quantity
-                    result.append(f"{product_name}: {quantity} x {price} = {total_price}")
+                    total_sum += total_price  # Umumiy summaga qo'shish
+                    result.append(f"{product_name}: {quantity} x {price} = {total_price} so'm")
                 else:
-                    result.append(f"Product {product_id} not found")
-            return "\n".join(result) if result else "Sizning savatingiz bo'sh."
-        return "Sizning savatingiz bo'sh."  # Savat bo'sh bo'lsa xabar
+                    result.append(f"Mahsulot {product_id} topilmadi")
+
+            result.append(f"\n<b>Jami:</b> {total_sum} so'm")
+            return "\n".join(result)
+        
+        return "Sizning savatingiz bo'sh."
 
 
-    def update_cart_quantity(self, user_id, product_id, quantity):
-        """Update the quantity of a product in the user's shopping cart."""
+    def update_cart_quantity(self, user_id, product_id, quantity_change):
+        """Update the quantity of a product in the user's shopping cart by a change in quantity."""
         if user_id in self.shopping_carts:
             cart = self.shopping_carts[user_id]
             if product_id in cart:
-                cart[product_id] = quantity  # Update the quantity to the new value
+                new_quantity = cart[product_id] + quantity_change
+                # Ensure the quantity is not negative
+                if new_quantity < 1:
+                    new_quantity = 1  # Minimum quantity should be 1
+                cart[product_id] = new_quantity
             else:
-                cart[product_id] = quantity  # If the product is not in the cart, add it with the given quantity
+                # If the product is not in the cart, add it with the new quantity
+                cart[product_id] = quantity_change if quantity_change > 0 else 1
         else:
-            self.shopping_carts[user_id] = {product_id: quantity}  # Create a new cart if not existing
+            self.shopping_carts[user_id] = {product_id: quantity_change if quantity_change > 0 else 1}
+
 
     def get_cart_product_quantity(self, user_id, product_id):
         """Return the current quantity of a product in the user's cart."""
