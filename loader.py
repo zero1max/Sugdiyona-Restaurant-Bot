@@ -4,7 +4,7 @@ from aiogram.client.default import DefaultBotProperties
 from database.product_db import Database_Product
 from database.news_db import Database_News
 
-TOKEN = "7472113514:AAEk4FVYP3JvhCVzBaQig89UzkO8f4Msw2M"
+TOKEN = "YOUR_BOT_TOKEN"
 
 db_pro = Database_Product()
 db_news = Database_News()
