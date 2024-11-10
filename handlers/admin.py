@@ -73,7 +73,6 @@ async def add_product(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await state.update_data(category=callback.data)
 
-    # Ma'lumotlarni olish
     data = await state.get_data()
     name = data['name']
     description = data['description']
@@ -89,7 +88,7 @@ async def add_product(callback: CallbackQuery, state: FSMContext):
 # ------------------------------------------ Delete products ------------------------------------------
 @router_admin.message(F.text == "Mahsulot o'chirish", Admin(ADMIN))
 async def view_products(msg: Message):
-    products = db_pro.get_all_products()  # Barcha mahsulotlarni olish
+    products = db_pro.get_all_products()  
     if products:
         product_list = "\n".join([f"{p[0]}. {p[1]} - {p[2]} so'm" for p in products])
         await msg.answer(f"Mahsulotlar:\n{product_list}\nO'chirish uchun mahsulot ID sini kiriting:")
@@ -99,7 +98,7 @@ async def view_products(msg: Message):
 @router_admin.message(F.text.isdigit(), Admin(ADMIN))
 async def delete_product(msg: Message):
     product_id = int(msg.text)
-    success = db_pro.delete_product(product_id)  # Mahsulotni o'chirish
+    success = db_pro.delete_product(product_id)  
     if success:
         await msg.answer("Mahsulot muvaffaqiyatli o'chirildi!")
     else:
@@ -109,7 +108,7 @@ async def delete_product(msg: Message):
 @router_admin.message(F.text == "Yangilik qo'shish", Admin(ADMIN))
 async def add_news(msg: Message, state: FSMContext):
     # Retrieve all existing news
-    news_items = db_news.get_all_news()  # Yangiliklarni olish
+    news_items = db_news.get_all_news() 
     if news_items:
         news_list = "\n".join([f"{n[0]}. {n[1]} - {n[2]} - created time: {n[4]}" for n in news_items])
         await msg.answer(f"Mavjud yangiliklar:\n{news_list}\n\nYangi yangilikning sarlavhasini kiriting:")
@@ -148,7 +147,7 @@ async def news_image_set(msg: Message, state: FSMContext):
 # ------------------------------------------ View all products ------------------------------------------
 @router_admin.message(F.text == "Barcha mahsulotlarni ko'rish", Admin(ADMIN))
 async def view_all_products(msg: Message):
-    products = db_pro.get_all_products()  # Barcha mahsulotlarni olish
+    products = db_pro.get_all_products() 
     if products:
         product_list = "\n".join([f"{p[0]}. {p[1]} - {p[2]} so'm" for p in products])
         await msg.answer(f"Barcha mahsulotlar:\n{product_list}")
