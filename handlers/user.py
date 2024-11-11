@@ -1,12 +1,11 @@
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.filters import CommandStart
 from aiogram import F
-from loader import router_user, bot, db_pro, db_news
+from loader import router_user, bot, db_pro, db_news, click_token
 from keyboards.inline.main import main_menu, menu, back_menu, plusminus, savat, asosiymenu, create_product_keyboard, create_cart_button
 from keyboards.default.main import buyurtmani_tugatish, dastavka, tolov, tel, location_keyboard
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from product.delivery_option import FAST_SHIPPING, REGULAR_SHIPPING, PICKUP_SHIPPING
 
 class User(StatesGroup):
     phone = State()
@@ -41,10 +40,12 @@ async def show_news(callback: CallbackQuery):
 async def show_hotdog_products(callback: CallbackQuery):
     await callback.message.delete()
 
+    # Hotdog kategoriyasidagi mahsulotlarni olish
     products = db_pro.get_products_by_category(callback.data)
     pro_name = (callback.data).capitalize()
 
     if products:
+        # `create_product_keyboard` orqali inline tugmalar yaratamiz
         inline_kb = create_product_keyboard(products)
         await callback.message.answer(f"{pro_name} kategoriyasidagi mahsulotlar:", reply_markup=inline_kb)
     else:
@@ -53,85 +54,90 @@ async def show_hotdog_products(callback: CallbackQuery):
 
 @router_user.callback_query(lambda c: c.data.startswith("product_"))
 async def show_product_detail(callback: CallbackQuery):
-    await callback.message.delete() 
+    await callback.message.delete()
     product_id = int(callback.data.split("_")[1])
     product = db_pro.select_product_by_id(product_id)
-    print(product_id)
-    
     if product:
-        productname = product[1]
-        productprice = product[2]
-        productdescription = product[3]
-        productimage = product[4]
+        product_name, product_price, product_description, product_image = product[1:5]
         await bot.send_photo(
-            callback.from_user.id, 
-            photo=productimage, 
-            caption=f"Mahsulot nomi: {productname}\nMahsulot narxi: {productprice} so'm\nMahsulot tavsifi: {productdescription}", 
-            reply_markup=create_cart_button(product_id)  
+            callback.from_user.id,
+            photo=product_image,
+            caption=f"Mahsulot nomi: {product_name}\nNarxi: {product_price} so'm\nTavsifi: {product_description}",
+            reply_markup=create_cart_button(product_id)  # Savatga qo'shish tugmasi
         )
     else:
         await callback.answer("Bu mahsulot topilmadi.", show_alert=True)
 
+
+
 @router_user.callback_query(lambda c: c.data.startswith("savesavat_"))
 async def add_to_cart(callback: CallbackQuery):
-    try:
-        product_id = int(callback.data.split("_")[1])
-        product = db_pro.select_product_by_id(product_id)
-        
-        if product:
-            db_pro.add_to_cart(db_pro.shopping_carts, callback.from_user.id, product_id)
-            await callback.answer(f"{product[1]} savatga qo'shildi!", show_alert=False)
-        else:
-            await callback.answer("Mahsulot topilmadi.", show_alert=True)
-    
-    except ValueError:
-        await callback.answer("Mahsulot ID noto'g'ri formatda kiritilgan.", show_alert=True)
+    product_id = int(callback.data.split("_")[1])
+    product = db_pro.select_product_by_id(product_id)
+    if product:
+        db_pro.add_to_cart(callback.from_user.id, product_id)
+        await callback.answer(f"{product[1]} savatga qo'shildi!", show_alert=False)
+    else:
+        await callback.answer("Mahsulot topilmadi.", show_alert=True)
 
 
 @router_user.callback_query(lambda c: c.data == 'savat')
 async def show_cart(callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    cart_text = db_pro.show_cart(user_id)  
-
-    if "bo'sh" not in cart_text:
-        total = sum(
-            int(line.split('=')[-1].strip().split()[0]) for line in cart_text.split('\n') if '=' in line
-        )
-        cart_text += f"\n\n<b>Jami:</b> {total} so'm"
-
+    cart_text, total_price = db_pro.show_cart(user_id)
+    print(cart_text)
+    
+    if cart_text:  # If the cart is not empty
+        cart_message = f"<b>Sizning savatingizdagi mahsulotlar:</b>\n\n{cart_text}\n\n<b>Jami:</b> {total_price} so'm"
         if callback_query.message.text:
-            await callback_query.message.edit_text(text=cart_text, reply_markup=plusminus)
+            await callback_query.message.edit_text(text=cart_message, reply_markup=plusminus)
         else:
-            await callback_query.message.answer(text=cart_text, reply_markup=plusminus)
+            await callback_query.message.answer(text=cart_message, reply_markup=plusminus)
     else:
         await callback_query.answer("Sizning savatingiz bo'sh.", show_alert=True)
 
 
-@router_user.callback_query(lambda c: c.data == 'increase')
+@router_user.callback_query(lambda c: c.data.startswith('increase_'))
 async def increase_quantity(callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    product_id = int(callback_query.message.text.split(":")[1].strip().split()[0]) 
-    db_pro.add_to_cart(db_pro.shopping_carts, user_id, product_id, quantity=1)
+    product_id = int(callback_query.data.split("_")[1])  # Example: increase_123 -> product_id 123
+    db_pro.add_to_cart(user_id, product_id, quantity=1)
     await callback_query.answer("Miqdor oshirildi")
     await show_cart(callback_query)
 
-
-@router_user.callback_query(lambda c: c.data == 'decrease')
+@router_user.callback_query(lambda c: c.data.startswith('decrease_'))
 async def decrease_quantity(callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    product_id = int(callback_query.message.text.split(":")[1].strip().split()[0])  
-    db_pro.remove_from_cart(db_pro.shopping_carts, user_id, product_id, quantity=1)
+    product_id = int(callback_query.data.split("_")[1])  # Example: decrease_123 -> product_id 123
+    db_pro.remove_from_cart(user_id, product_id, quantity=1)
     await callback_query.answer("Miqdor kamaytirildi")
     await show_cart(callback_query)
+
+
+@router_user.callback_query(lambda c: c.data == 'tayyor')
+async def finish_order(callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    cart = db_pro.show_cart(user_id)
+    if cart != "Sizning savatingiz bo'sh.":
+        await bot.send_message(chat_id=user_id, text="Buyurtmangiz muvaffaqiyatli qabul qilindi.", reply_markup=buyurtmani_tugatish)
+        await callback_query.message.delete()
+        await callback_query.answer("Buyurtma qabul qilindi")
+    else:
+        await callback_query.answer("Savatingiz bo'sh.", show_alert=True)
 
 
 
 async def show_cart_details(callback_query: CallbackQuery, user_id: int):
     cart = db_pro.show_cart(user_id)
     if cart != "Sizning savatingiz bo'sh.":
-        total = sum(
-            int(line.split('=')[-1].strip()) for line in cart.split('\n') if '=' in line
-        )
+        total = 0
+        for line in cart.split('\n'):
+            if '=' in line:
+                try:
+                    price = int(line.split('=')[-1].strip())
+                    total += price
+                except ValueError:
+                    continue  # Handle cases where the price is not valid
         cart += f"\nJami: {total} so'm"
         if callback_query.message.photo:
             await callback_query.message.edit_caption(caption=cart, reply_markup=plusminus)
@@ -142,13 +148,14 @@ async def show_cart_details(callback_query: CallbackQuery, user_id: int):
 
 
 
+
 @router_user.callback_query(lambda c: c.data == 'tayyor')
 async def finish_order(callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     cart = db_pro.show_cart(user_id)
-    print(cart)
+
     if cart != "Sizning savatingiz bo'sh.":
-        await bot.send_message(chat_id=user_id, text="Buyurtmangiz muvaffaqiyatli qabul qilindi. ", reply_markup=buyurtmani_tugatish)
+        await bot.send_message(chat_id=user_id, text="Buyurtmangiz muvaffaqiyatli qabul qilindi.", reply_markup=buyurtmani_tugatish)
         await callback_query.message.delete()
         await callback_query.answer("Buyurtma qabul qilindi")
     else:
