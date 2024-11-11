@@ -10,10 +10,10 @@ class Database_Product:
     shopping_carts: dict = None
 
     def __post_init__(self):
-        self.connect = sqlite3.connect('product.db')  
-        self.cursor = self.connect.cursor()  
-        self.shopping_carts = {}  
-        self.current_product_id = 0  
+        self.connect = sqlite3.connect('product.db')  # 'product.db' ma'lumotlar bazasi bilan ulanish
+        self.cursor = self.connect.cursor()  # Ma'lumotlar bazasi uchun kursorni yaratish
+        self.shopping_carts = {}  # Savatchalar lug'ati
+        self.current_product_id = 0  # Hozirgi mahsulot ID
 
     def create_table(self):
         self.cursor.execute('''CREATE TABLE IF NOT EXISTS products(
@@ -24,34 +24,34 @@ class Database_Product:
             image TEXT NOT NULL,
             category TEXT NOT NULL
         )''')
-        self.connect.commit()  
+        self.connect.commit()  # O'zgarishlarni saqlash
 
     def add_products(self, name, price, description, image, category):
         self.cursor.execute("INSERT INTO products (name, price, description, image, category) VALUES (?, ?, ?, ?, ?)",
                             (name, price, description, image, category))
-        self.connect.commit() 
+        self.connect.commit()  # O'zgarishlarni saqlash
 
     def get_all_products(self):
         self.cursor.execute("SELECT id, name, price FROM products")
-        return self.cursor.fetchall()  
+        return self.cursor.fetchall()  # Barcha mahsulotlarni qaytarish
 
     def delete_product(self, product_id):
         self.cursor.execute("DELETE FROM products WHERE id=?", (product_id,))
-        self.connect.commit()
-        return self.cursor.rowcount > 0 
+        self.connect.commit()  # O'zgarishlarni saqlash
+        return self.cursor.rowcount > 0  # O'chirilgan mahsulotlar sonini qaytarish
 
     def update_product(self, id, product_name, description, price, image, category):
         self.cursor.execute("UPDATE products SET name = ?, description = ?, price = ?, image = ?, category = ? WHERE id = ?",
                             (product_name, description, price, image, category, id))
-        self.connect.commit()  
+        self.connect.commit()  # O'zgarishlarni saqlash
 
     def get_products_by_category(self, category):
         self.cursor.execute("SELECT * FROM products WHERE category=?", (category,))
-        return self.cursor.fetchall()  
+        return self.cursor.fetchall()  # Ma'lum bir kategoriya bo'yicha mahsulotlarni qaytarish
 
     def get_categories(self):
         self.cursor.execute("SELECT DISTINCT category FROM products")
-        return [row[0] for row in self.cursor.fetchall()]  
+        return [row[0] for row in self.cursor.fetchall()]  # Barcha kategoriyalarni qaytarish
 
     def select_product_by_id(self, product_id):
         self.cursor.execute("SELECT * FROM products WHERE id = ?", (product_id,))
@@ -60,75 +60,83 @@ class Database_Product:
             print(f"Product with ID {product_id} not found.")
         return product
 
+    def add_to_cart(self, user_id, product_id):
+        """Foydalanuvchi savatiga mahsulot qo'shadi yoki mavjud mahsulot sonini oshiradi."""
+        # Agar foydalanuvchining savati bo'lmasa, yangi yaratish
+        if user_id not in self.shopping_carts:
+            self.shopping_carts[user_id] = {}
+            print(self.shopping_carts)
 
-    @staticmethod
-    def add_to_cart(shopping_carts, user_id, product_id, quantity=1):
-        if user_id not in shopping_carts:
-            shopping_carts[user_id] = {}
-        cart = shopping_carts[user_id]
-        if product_id in cart:
-            cart[product_id] += quantity
+        # Mahsulotni savatga qo'shish yoki mavjud bo'lsa, sonini oshirish
+        if product_id not in self.shopping_carts[user_id]:
+            self.shopping_carts[user_id][product_id] = 1  # Yangi mahsulotni soni bilan qo'shish
+            print(self.shopping_carts)
         else:
-            cart[product_id] = quantity
+            self.update_cart(user_id, product_id, 1) 
 
-    
-    @staticmethod
-    def remove_from_cart(shopping_carts, user_id, product_id, quantity=1):
-        if user_id in shopping_carts and product_id in shopping_carts[user_id]:
-            cart = shopping_carts[user_id]
-            if cart[product_id] > quantity:
-                cart[product_id] -= quantity
-            else:
-                del cart[product_id]
+
+    def remove_from_cart(self, user_id, product_id, quantity=1):
+        self.update_cart(user_id, product_id, -quantity)    
+
 
     
     def show_cart(self, user_id):
-        if user_id in self.shopping_carts:
-            cart = self.shopping_carts[user_id]
-            result = ["<b>Sizning savatingizdagi mahsulotlar:</b>\n"]
-            total_sum = 0
-            
-            for product_id, quantity in cart.items():
-                product = self.select_product_by_id(product_id)
-                if product:
-                    product_name = product[1]
-                    price = product[2]
-                    total_price = price * quantity
-                    total_sum += total_price  
-                    result.append(f"{product_name}: {quantity} x {price} = {total_price} so'm")
-                else:
-                    result.append(f"Mahsulot {product_id} topilmadi")
+        """Foydalanuvchining savatidagi barcha mahsulotlarning nomi, narxi va sonini qaytaradi."""
+        if user_id not in self.shopping_carts or not self.shopping_carts[user_id]:
+            return ""  # Agar savat bo'sh bo'lsa, bo'sh qiymat qaytaramiz
 
-            result.append(f"\n<b>Jami:</b> {total_sum} so'm")
-            return "\n".join(result)
-        
-        return "Sizning savatingiz bo'sh."
+        cart = self.shopping_carts[user_id]
+        result = []
+        total_price = 0  # Jami narxni hisoblash
 
+        # 0 miqdorli mahsulotlarni olib tashlaymiz
+        items_to_remove = [product_id for product_id, quantity in cart.items() if quantity <= 0]
+        for product_id in items_to_remove:
+            del cart[product_id]
 
-    def update_cart_quantity(self, user_id, product_id, quantity_change):
-        """Update the quantity of a product in the user's shopping cart by a change in quantity."""
-        if user_id in self.shopping_carts:
-            cart = self.shopping_carts[user_id]
-            if product_id in cart:
-                new_quantity = cart[product_id] + quantity_change
-                if new_quantity < 1:
-                    new_quantity = 1  
-                cart[product_id] = new_quantity
+        # Agar savat bo'sh bo'lib qolgan bo'lsa
+        if not cart:
+            return ""
+
+        # Savatdagi barcha mahsulotlar haqida ma'lumot chiqarish
+        for product_id, quantity in cart.items():
+            product = self.select_product_by_id(product_id)
+            if product:
+                product_name = product[1]
+                price = product[2]
+                product_total = price * quantity  # Mahsulotning jami narxi
+                total_price += product_total  # Jami narxni yangilash
+                result.append(f"{product_name}: {price} so'm (x{quantity}) - Jami: {product_total} so'm")
             else:
-                cart[product_id] = quantity_change if quantity_change > 0 else 1
+                result.append(f"Mahsulot ID {product_id} topilmadi")
+
+        # Mahsulotlar ro'yxati va umumiy narxni qaytaramiz
+        return "\n".join(result), total_price
+
+
+
+    def update_cart(self, user_id, product_id, quantity_change):
+        """Foydalanuvchining savatidagi mahsulot miqdorini o'zgartirish."""
+        if user_id not in self.shopping_carts:
+            self.shopping_carts[user_id] = {}
+
+        cart = self.shopping_carts[user_id]
+        new_quantity = cart.get(product_id, 0) + quantity_change
+
+        if new_quantity <= 0:
+            cart.pop(product_id, None)  # Mahsulotni savatdan o'chirish
         else:
-            self.shopping_carts[user_id] = {product_id: quantity_change if quantity_change > 0 else 1}
+            cart[product_id] = new_quantity  # Mahsulot sonini yangilash
+
 
 
     def get_cart_product_quantity(self, user_id, product_id):
-        """Return the current quantity of a product in the user's cart."""
-        if user_id in self.shopping_carts and product_id in self.shopping_carts[user_id]:
-            return self.shopping_carts[user_id][product_id]
-        return 0  
+        """Foydalanuvchining savatidagi mahsulot miqdorini qaytaradi."""
+        return self.shopping_carts.get(user_id, {}).get(product_id, 0)
 
 
     def close(self):
         if self.cursor:
-            self.cursor.close() 
+            self.cursor.close()  # Kursorni yopish
         if self.connect:
-            self.connect.close()  
+            self.connect.close()  # Ulanishni yopish
