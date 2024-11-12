@@ -1,1 +1,1 @@
-# Sugdiyona-Restaurant-Bot
+# Sugdiyona-Restaurant-Bot[requirements.txt](requirements.txt)

@@ -1,6 +1,7 @@
 import sqlite3
 from dataclasses import dataclass
 
+
 @dataclass
 class Database_Product:
     connect: sqlite3.Connection = None
@@ -22,7 +23,8 @@ class Database_Product:
             price INTEGER NOT NULL,
             description TEXT NOT NULL,
             image TEXT NOT NULL,
-            category TEXT NOT NULL
+            category TEXT NOT NULL,
+            count INTEGER default 0
         )''')
         self.connect.commit()  # O'zgarishlarni saqlash
 
@@ -41,8 +43,9 @@ class Database_Product:
         return self.cursor.rowcount > 0  # O'chirilgan mahsulotlar sonini qaytarish
 
     def update_product(self, id, product_name, description, price, image, category):
-        self.cursor.execute("UPDATE products SET name = ?, description = ?, price = ?, image = ?, category = ? WHERE id = ?",
-                            (product_name, description, price, image, category, id))
+        self.cursor.execute(
+            "UPDATE products SET name = ?, description = ?, price = ?, image = ?, category = ? WHERE id = ?",
+            (product_name, description, price, image, category, id))
         self.connect.commit()  # O'zgarishlarni saqlash
 
     def get_products_by_category(self, category):
@@ -72,14 +75,24 @@ class Database_Product:
             self.shopping_carts[user_id][product_id] = 1  # Yangi mahsulotni soni bilan qo'shish
             print(self.shopping_carts)
         else:
-            self.update_cart(user_id, product_id, 1) 
-
+            self.update_cart(user_id, product_id, 1)
 
     def remove_from_cart(self, user_id, product_id, quantity=1):
-        self.update_cart(user_id, product_id, -quantity)    
+        self.update_cart(user_id, product_id, -quantity)
 
+    def get_users_count(self, product_id):
+        self.cursor.execute("SELECT count FROM products WHERE id=?", (product_id,))
+        return self.cursor.fetchone()
 
-    
+    def increment_product_count(self, product_id):
+        # Avval hozirgi count qiymatini olish
+        self.cursor.execute("SELECT count FROM products WHERE id = ?", (product_id,))
+        current_count = self.cursor.fetchone()[0]
+
+        # count qiymatini oshirish va yangilash
+        self.cursor.execute("UPDATE products SET count = ? WHERE id = ?", (current_count + 1, product_id))
+        self.connect.commit()
+
     def show_cart(self, user_id):
         """Foydalanuvchining savatidagi barcha mahsulotlarning nomi, narxi va sonini qaytaradi."""
         if user_id not in self.shopping_carts or not self.shopping_carts[user_id]:
@@ -104,16 +117,16 @@ class Database_Product:
             if product:
                 product_name = product[1]
                 price = product[2]
+                count = product[-1]
                 product_total = price * quantity  # Mahsulotning jami narxi
                 total_price += product_total  # Jami narxni yangilash
-                result.append(f"{product_name}: {price} so'm (x{quantity}) - Jami: {product_total} so'm")
+                result.append(
+                    f"{product_name}: {price} so'm (x{quantity}) - Jami: {product_total} Count {count} ID {product_id}")
             else:
                 result.append(f"Mahsulot ID {product_id} topilmadi")
 
         # Mahsulotlar ro'yxati va umumiy narxni qaytaramiz
         return "\n".join(result), total_price
-
-
 
     def update_cart(self, user_id, product_id, quantity_change):
         """Foydalanuvchining savatidagi mahsulot miqdorini o'zgartirish."""
@@ -128,12 +141,9 @@ class Database_Product:
         else:
             cart[product_id] = new_quantity  # Mahsulot sonini yangilash
 
-
-
     def get_cart_product_quantity(self, user_id, product_id):
         """Foydalanuvchining savatidagi mahsulot miqdorini qaytaradi."""
         return self.shopping_carts.get(user_id, {}).get(product_id, 0)
-
 
     def close(self):
         if self.cursor:
