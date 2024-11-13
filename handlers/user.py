@@ -6,8 +6,9 @@ from aiogram.types import Message, CallbackQuery
 from keyboards.default.main import buyurtmani_tugatish, dastavka, tolov, tel, location_keyboard
 from keyboards.inline.main import main_menu, menu, back_menu, plusminus, asosiymenu, create_product_keyboard, \
     create_cart_button
-from loader import router_user, bot, db_pro, db_news
+from loader import router_user, bot, db_pro
 from config import ADMIN
+from database.news_db import get_all_news
 
 
 class User(StatesGroup):
@@ -18,6 +19,7 @@ class User(StatesGroup):
 
 @router_user.message(CommandStart())
 async def start(msg: Message):
+    await set
     await msg.answer('Asosiy Menu🏠:', reply_markup=main_menu) # noqa
 
 
@@ -31,7 +33,7 @@ async def elektronikas(callback: CallbackQuery):
 @router_user.callback_query(F.data == 'news')
 async def show_news(callback: CallbackQuery):
     await callback.message.delete()
-    news_list = db_news.get_all_news()
+    news_list = await get_all_news()
 
     if news_list:
         for _, title, description, image, _ in news_list:
