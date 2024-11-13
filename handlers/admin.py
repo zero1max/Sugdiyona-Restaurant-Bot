@@ -1,12 +1,14 @@
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, Filter, Command
 from aiogram import F
-from loader import router_admin, bot, db_pro, db_news
+from loader import router_admin, bot, db_pro
 from keyboards.default.main import menu_admin_default
 from keyboards.inline.main import menu_admin_inline
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from config import ADMIN
+from database.news_db import add_newss, get_all_news
+
+ADMIN = 5471452269
 
 class Product(StatesGroup):
     name = State()
@@ -72,6 +74,7 @@ async def add_product(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await state.update_data(category=callback.data)
 
+    # Ma'lumotlarni olish
     data = await state.get_data()
     name = data['name']
     description = data['description']
@@ -87,7 +90,7 @@ async def add_product(callback: CallbackQuery, state: FSMContext):
 # ------------------------------------------ Delete products ------------------------------------------
 @router_admin.message(F.text == "Mahsulot o'chirish", Admin(ADMIN))
 async def view_products(msg: Message):
-    products = db_pro.get_all_products()  
+    products = db_pro.get_all_products()  # Barcha mahsulotlarni olish
     if products:
         product_list = "\n".join([f"{p[0]}. {p[1]} - {p[2]} so'm" for p in products])
         await msg.answer(f"Mahsulotlar:\n{product_list}\nO'chirish uchun mahsulot ID sini kiriting:")
@@ -97,7 +100,7 @@ async def view_products(msg: Message):
 @router_admin.message(F.text.isdigit(), Admin(ADMIN))
 async def delete_product(msg: Message):
     product_id = int(msg.text)
-    success = db_pro.delete_product(product_id)  
+    success = db_pro.delete_product(product_id)  # Mahsulotni o'chirish
     if success:
         await msg.answer("Mahsulot muvaffaqiyatli o'chirildi!")
     else:
@@ -107,7 +110,7 @@ async def delete_product(msg: Message):
 @router_admin.message(F.text == "Yangilik qo'shish", Admin(ADMIN))
 async def add_news(msg: Message, state: FSMContext):
     # Retrieve all existing news
-    news_items = db_news.get_all_news() 
+    news_items = await get_all_news()  # Yangiliklarni olish
     if news_items:
         news_list = "\n".join([f"{n[0]}. {n[1]} - {n[2]} - created time: {n[4]}" for n in news_items])
         await msg.answer(f"Mavjud yangiliklar:\n{news_list}\n\nYangi yangilikning sarlavhasini kiriting:")
@@ -134,19 +137,23 @@ async def news_image_set(msg: Message, state: FSMContext):
     await state.update_data(image=photo_id)
 
     data = await state.get_data()
+    print(data)
     title = data['title']
     description = data['description']
     image = data['image']
-    
+    print(title)
+    print(description)
+    print(image)
+
+    await add_newss(title, description, image)
     await state.clear() 
-    db_news.add_news(title, description, image)
     
     await msg.answer("Yangilik qo'shildi!")
 
 # ------------------------------------------ View all products ------------------------------------------
 @router_admin.message(F.text == "Barcha mahsulotlarni ko'rish", Admin(ADMIN))
 async def view_all_products(msg: Message):
-    products = db_pro.get_all_products() 
+    products = db_pro.get_all_products()  # Barcha mahsulotlarni olish
     if products:
         product_list = "\n".join([f"{p[0]}. {p[1]} - {p[2]} so'm" for p in products])
         await msg.answer(f"Barcha mahsulotlar:\n{product_list}")
