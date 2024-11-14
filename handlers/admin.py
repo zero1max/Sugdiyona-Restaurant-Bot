@@ -7,8 +7,7 @@ from keyboards.inline.main import menu_admin_inline
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from database.news_db import add_newss, get_all_news
-
-ADMIN = 5471452269
+from config import ADMIN
 
 class Product(StatesGroup):
     name = State()
