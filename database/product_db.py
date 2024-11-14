@@ -150,3 +150,31 @@ class Database_Product:
             self.cursor.close()  # Kursorni yopish
         if self.connect:
             self.connect.close()  # Ulanishni yopish
+
+import aiosqlite
+
+DATABASE = 'product.db'
+
+async def setup():
+    async with aiosqlite.connect(DATABASE) as db:
+        await db.execute('''CREATE TABLE IF NOT EXISTS products(
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            price INTEGER NOT NULL,
+            description TEXT NOT NULL,
+            image TEXT NOT NULL,
+            category TEXT NOT NULL
+        )''')
+        await db.execute('''CREATE TABLE IF NOT EXISTS savat(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            product_id INTEGER NOT NULL,
+            count INTEGER default 0
+        )''')
+        await db.execute('''CREATE TABLE IF NOT EXISTS users(
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            phone VARCHAR NOT NULL,
+            address VARCHAR NOT NULL
+        )''')
+        await db.commit()
