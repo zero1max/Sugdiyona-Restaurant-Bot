@@ -3,10 +3,12 @@ import logging
 import sys
 
 from database.news_db import setup_db
+from database.product_db import setup
 from loader import dp, bot, db_pro
 import handlers
 
 async def main():
+    await setup()
     await setup_db()
     await dp.start_polling(bot)
     db_pro.close()
