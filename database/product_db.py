@@ -158,23 +158,53 @@ DATABASE = 'product.db'
 async def setup():
     async with aiosqlite.connect(DATABASE) as db:
         await db.execute('''CREATE TABLE IF NOT EXISTS products(
-            id INTEGER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            price INTEGER NOT NULL,
+            price REAL NOT NULL,  -- Narxni REAL yoki FLOAT turida saqlash tavsiya etiladi
             description TEXT NOT NULL,
             image TEXT NOT NULL,
             category TEXT NOT NULL
         )''')
+        
         await db.execute('''CREATE TABLE IF NOT EXISTS savat(
-            id SERIAL PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             product_id INTEGER NOT NULL,
-            count INTEGER default 0
+            count INTEGER DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (product_id) REFERENCES products(id)
         )''')
+        
         await db.execute('''CREATE TABLE IF NOT EXISTS users(
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER UNIQUE NOT NULL,  -- Agar user_id noyob bo'lsa, UNIQUE qo'shish mumkin
             phone VARCHAR NOT NULL,
-            address VARCHAR NOT NULL
+            address TEXT NOT NULL
         )''')
+        
         await db.commit()
+
+
+async def add_product(name, price, description, image, category):
+    async with aiosqlite.connect(DATABASE) as db:
+        db.execute('''INSERT INTO products(name, price, description, image, category) VALUES(?, ?, ?, ?, ?)''', 
+                (name, price, description, image, category))
+        await db.commit()
+
+
+async def add_users(user_id, phone, address):
+    async with aiosqlite.connect(DATABASE) as db:
+        db.execute('''INSERT INTO users(user_id, phone, address) VALUES(?, ?, ?)''',
+                (user_id, phone, address))
+        await db.commit()
+
+
+# async def show_savat(user_id):
+#     async with aiosqlite.connect(DATABASE) as db:
+        
+
+async def user_exists(user_id):
+    async with aiosqlite.connect(DATABASE) as db:
+        async with db.execute('''SELECT * FROM users WHERE user_id = ?''',(user_id)) as cursor:
+            result = await cursor.fetchmany(1)
+            return bool(len(result))
