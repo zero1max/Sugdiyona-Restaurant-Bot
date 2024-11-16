@@ -151,6 +151,8 @@ class Database_Product:
         if self.connect:
             self.connect.close()  # Ulanishni yopish
 
+# ---------------------------------------------------------------------------------------------
+
 import aiosqlite
 
 DATABASE = 'product.db'
@@ -187,24 +189,84 @@ async def setup():
 
 async def add_product(name, price, description, image, category):
     async with aiosqlite.connect(DATABASE) as db:
-        db.execute('''INSERT INTO products(name, price, description, image, category) VALUES(?, ?, ?, ?, ?)''', 
-                (name, price, description, image, category))
+        await db.execute('''INSERT INTO products(name, price, description, image, category) 
+                             VALUES(?, ?, ?, ?, ?)''', 
+                          (name, price, description, image, category))
         await db.commit()
 
 
 async def add_users(user_id, phone, address):
     async with aiosqlite.connect(DATABASE) as db:
-        db.execute('''INSERT INTO users(user_id, phone, address) VALUES(?, ?, ?)''',
-                (user_id, phone, address))
+        await db.execute('''INSERT INTO users(user_id, phone, address) 
+                             VALUES(?, ?, ?)''',
+                          (user_id, phone, address))
+        await db.commit()
+        
+
+async def add_savat(user_id, product_id):
+    async with aiosqlite.connect(DATABASE) as db:
+        await db.execute('''INSERT INTO savat(user_id, product_id) 
+                             VALUES(?, ?)''', 
+                          (user_id, product_id))
         await db.commit()
 
 
-# async def show_savat(user_id):
-#     async with aiosqlite.connect(DATABASE) as db:
-        
-
 async def user_exists(user_id):
     async with aiosqlite.connect(DATABASE) as db:
-        async with db.execute('''SELECT * FROM users WHERE user_id = ?''',(user_id)) as cursor:
-            result = await cursor.fetchmany(1)
-            return bool(len(result))
+        async with db.execute('''SELECT * FROM users WHERE user_id = ?''', (user_id,)) as cursor:
+            result = await cursor.fetchone()
+            return result is not None
+        
+async def get_all_products():
+    async with aiosqlite.connect(DATABASE) as db:
+        async with db.execute("SELECT id, name, price, description, image, category FROM products") as pro:
+            rows = await pro.fetchall()
+            result = [
+                {
+                    "id": row[0],
+                    "name": row[1],
+                    "price": row[2],
+                    "description": row[3],
+                    "image": row[4],
+                    "category": row[5],
+                }
+                for row in rows
+            ]
+            return result
+        
+
+async def delete_product(product_id):
+    async with aiosqlite.connect(DATABASE) as db:
+        await db.execute("DELETE FROM products WHERE id=?", (product_id,))
+        await db.commit()
+
+
+async def update_product(id, product_name, description, price, image, category):
+    async with aiosqlite.connect(DATABASE) as db:
+        await db.execute(
+            "UPDATE products SET name = ?, description = ?, price = ?, image = ?, category = ? WHERE id = ?",
+            (product_name, description, price, image, category, id))
+        await db.commit()
+
+
+async def get_products_by_category(category):
+    async with aiosqlite.connect(DATABASE) as db:
+        async with db.execute("SELECT * FROM products WHERE category=?", (category,)) as cate:
+            result = await cate.fetchall()
+            return result
+        
+
+async def get_categories():
+    async with aiosqlite.connect(DATABASE) as db:
+        async with db.execute("SELECT DISTINCT category FROM products") as cate:
+            result = await [row[0] for row in cate.fetchall()]
+            return result
+        
+
+async def select_product_by_id(product_id):
+    async with aiosqlite.connect(DATABASE) as db:
+        async with db.execute("SELECT * FROM products WHERE id = ?", (product_id,)) as pro_id:
+            result = await pro_id.fetchone()
+            if result is None:
+                print(f"Product with ID {product_id} not found.")
+            await result 
