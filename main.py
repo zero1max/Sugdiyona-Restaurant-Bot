@@ -4,14 +4,13 @@ import sys
 
 from database.news_db import setup_db
 from database.product_db import setup
-from loader import dp, bot, db_pro
+from loader import dp, bot
 import handlers
 
 async def main():
-    await setup()
     await setup_db()
+    await setup()
     await dp.start_polling(bot)
-    db_pro.close()
 
     
 if __name__ == '__main__':
