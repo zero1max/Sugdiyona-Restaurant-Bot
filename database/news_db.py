@@ -25,3 +25,9 @@ async def get_all_news():
     async with aiosqlite.connect(DATABASE) as db:
         async with db.execute('SELECT * FROM news') as cursor:
             return await cursor.fetchall()
+        
+
+async def delete_news(news_id):
+    async with aiosqlite.connect(DATABASE) as db:
+        await db.execute("DELETE FROM news WHERE id=?", (news_id,))
+        await db.commit()
