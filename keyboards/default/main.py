@@ -3,8 +3,10 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 menu_admin_default = ReplyKeyboardMarkup(
     resize_keyboard=True,
     keyboard=[
-        [KeyboardButton(text="Yangi mahsulot qo'shish"), KeyboardButton(text="Yangilik qo'shish")],
-        [KeyboardButton(text="Mahsulot o'chirish"), KeyboardButton(text="Barcha mahsulotlarni ko'rish")]
+        [KeyboardButton(text="Yangi mahsulot qo'shish"), KeyboardButton(text="Mahsulot o'chirish")],
+        [KeyboardButton(text="Barcha mahsulotlarni ko'rish")],
+        [KeyboardButton(text="Yangilik qo'shish"), KeyboardButton(text="Yangilik o'chirish")],
+        [KeyboardButton(text="Barcha yangiliklarni ko'rish")]
     ]
 )
 
