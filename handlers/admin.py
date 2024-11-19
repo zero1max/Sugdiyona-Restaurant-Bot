@@ -1,5 +1,5 @@
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import CommandStart, Filter, Command
+from aiogram.filters import CommandStart, Filter
 from aiogram import F
 from loader import router_admin
 from keyboards.default.main import menu_admin_default
@@ -22,6 +22,12 @@ class News(StatesGroup):
     title = State()
     description = State()
     image = State()
+
+class Delete_Pro_ID(StatesGroup):
+    id = State()
+
+class Delere_New_ID(StatesGroup):
+    id = State()
 
 class Admin(Filter):
     def __init__(self, my_id: int):
@@ -89,22 +95,57 @@ async def choice_menu(callback: CallbackQuery, state: FSMContext):
 
 # ------------------------------------------ Delete products ------------------------------------------
 @router_admin.message(F.text == "Mahsulot o'chirish", Admin(ADMIN))
-async def view_products(msg: Message):
+async def view_products(msg: Message, state: FSMContext):
     products = await get_all_products()  # Barcha mahsulotlarni olish
     if products:
-        product_list = "\n".join([f"{p[0]}. {p[1]} - {p[2]} so'm" for p in products])
+        # Takrorlangan mahsulotlarni olib tashlash
+        unique_products = {product['id']: product for product in products}.values()
+
+        # Mahsulotlarni formatlash
+        product_list = "\n".join(
+            [f"{product['id']}. {product['name']} - {product['price']} so'm" for product in unique_products]
+        )
         await msg.answer(f"Mahsulotlar:\n{product_list}\nO'chirish uchun mahsulot ID sini kiriting:")
+        await state.set_state(Delete_Pro_ID.id)
     else:
         await msg.answer("Hech qanday mahsulot topilmadi.")
 
-@router_admin.message(F.text.isdigit(), Admin(ADMIN))
-async def delete_product(msg: Message):
-    product_id = int(msg.text)
-    success = await delete_product(product_id)  # Mahsulotni o'chirish
-    if success:
-        await msg.answer("Mahsulot muvaffaqiyatli o'chirildi!")
+@router_admin.message(Delete_Pro_ID.id, Admin(ADMIN))
+async def delete_product_handler(msg: Message, state: FSMContext):
+    try:
+        # Foydalanuvchining ID sini integerga o‘tkazish
+        product_id = int(msg.text)
+
+        # Ma'lumotlar bazasidan mahsulotni o'chirish
+        success = await delete_product(product_id)
+
+        if success:
+            await msg.answer("Mahsulot muvaffaqiyatli o'chirildi!")
+        else:
+            await msg.answer("Bunday ID li mahsulot topilmadi.")
+    except ValueError:
+        # Agar foydalanuvchi noto‘g‘ri qiymat kiritsa
+        await msg.answer("Iltimos, faqat mahsulot ID sini kiriting!")
+    except Exception as e:
+        # Boshqa xatoliklar uchun
+        await msg.answer(f"Xatolik yuz berdi: {e}")
+    finally:
+        # Holatni tugatish
+        await state.clear()
+
+
+
+# ------------------------------------------ View all products ------------------------------------------
+@router_admin.message(F.text == "Barcha mahsulotlarni ko'rish", Admin(ADMIN))
+async def view_all_products(msg: Message):
+    products = await get_all_products()  # Barcha mahsulotlarni olish
+    if products:
+        product_list = "\n".join(
+            [f"{p['id']}. {p['name']} - {p['price']} so'm" for p in products]
+        )
+        await msg.answer(f"Barcha mahsulotlar:\n{product_list}")
     else:
-        await msg.answer("Mahsulotni o'chirishda xato yuz berdi. Iltimos, ID ni tekshiring.")
+        await msg.answer("Hech qanday mahsulot topilmadi.")
 
 # ---------------------------------------------- News Add ---------------------------------------------------
 @router_admin.message(F.text == "Yangilik qo'shish", Admin(ADMIN))
@@ -155,30 +196,30 @@ async def add_news(msg: Message, state: FSMContext):
     if news_items:
         news_list = "\n".join([f"{n[0]}. {n[1]} - {n[2]}" for n in news_items])
         await msg.answer(f"Mavjud yangiliklar:\n{news_list}\n\nO'chirmoqchi bo'lgan yangilik ID sini kiriting:")
+        await state.set_state(Delere_New_ID.id)
     else:
         await msg.answer('Hech qanday yangilik topilmadi.\nYangi yangilikning sarlavhasini kiriting:')
 
-@router_admin.message(F.text.isdigit(), Admin(ADMIN))
-async def delete_new(msg: Message):
-    news_id = int(msg.text)
-    success = await delete_news(news_id)  # Mahsulotni o'chirish
-    if success:
-        await msg.answer("Yangilik muvaffaqiyatli o'chirildi!")
-    else:
-        await msg.answer("Yangilik o'chirishda xato yuz berdi. Iltimos, ID ni tekshiring.")
+@router_admin.message(Delere_New_ID.id, Admin(ADMIN))
+async def delete_new(msg: Message, state: FSMContext):
+    await state.update_data(id = msg.text)
+    try:
+        news_id = int(msg.text)
+        success = await delete_product(news_id)
 
-# ------------------------------------------ View all products ------------------------------------------
-@router_admin.message(F.text == "Barcha mahsulotlarni ko'rish", Admin(ADMIN))
-async def view_all_products(msg: Message):
-    products = await get_all_products()  # Barcha mahsulotlarni olish
-    if products:
-        product_list = "\n".join(
-            [f"{p['id']}. {p['name']} - {p['price']} so'm" for p in products]
-        )
-        await msg.answer(f"Barcha mahsulotlar:\n{product_list}")
-    else:
-        await msg.answer("Hech qanday mahsulot topilmadi.")
-
+        if success:
+            await msg.answer("Yangilik muvaffaqiyatli o'chirildi!")
+        else:
+            await msg.answer("Bunday ID li yangilik topilmadi.")
+    except ValueError:
+        # Agar foydalanuvchi noto‘g‘ri qiymat kiritsa
+        await msg.answer("Iltimos, faqat yangilik ID sini kiriting!")
+    except Exception as e:
+        # Boshqa xatoliklar uchun
+        await msg.answer(f"Xatolik yuz berdi: {e}")
+    finally:
+        # Holatni tugatish
+        await state.clear()
 # ------------------------------------------ View all news -----------------------------------------------
 @router_admin.message(F.text == "Barcha yangiliklarni ko'rish", Admin(ADMIN))
 async def view_all_news(msg: Message):
