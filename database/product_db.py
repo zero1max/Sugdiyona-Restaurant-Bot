@@ -220,8 +220,10 @@ async def get_all_products():
 
 async def delete_product(product_id):
     async with aiosqlite.connect(DATABASE) as db:
-        await db.execute("DELETE FROM products WHERE id=?", (product_id,))
+        result = await db.execute("DELETE FROM products WHERE id=?", (product_id,))
         await db.commit()
+        print("Rowcount:", result.rowcount)  # Qancha qator o‘chirilganligini ko‘rsatadi
+        return result.rowcount > 0
 
 
 async def update_product(id, product_name, description, price, image, category):
