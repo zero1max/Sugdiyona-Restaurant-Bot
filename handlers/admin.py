@@ -150,8 +150,7 @@ async def view_all_products(msg: Message):
 # ---------------------------------------------- News Add ---------------------------------------------------
 @router_admin.message(F.text == "Yangilik qo'shish", Admin(ADMIN))
 async def add_news(msg: Message, state: FSMContext):
-    # Retrieve all existing news
-    news_items = await get_all_news()  # Yangiliklarni olish
+    news_items = await get_all_news()  
     if news_items:
         news_list = "\n".join([f"{n[0]}. {n[1]} - {n[2]}" for n in news_items])
         await msg.answer(f"Mavjud yangiliklar:\n{news_list}\n\nYangi yangilikning sarlavhasini kiriting:")
@@ -191,8 +190,7 @@ async def news_image_set(msg: Message, state: FSMContext):
 # ------------------------------------------ News Delete ------------------------------------------------
 @router_admin.message(F.text == "Yangilik o'chirish", Admin(ADMIN))
 async def add_news(msg: Message, state: FSMContext):
-    # Retrieve all existing news
-    news_items = await get_all_news()  # Yangiliklarni olish
+    news_items = await get_all_news()
     if news_items:
         news_list = "\n".join([f"{n[0]}. {n[1]} - {n[2]}" for n in news_items])
         await msg.answer(f"Mavjud yangiliklar:\n{news_list}\n\nO'chirmoqchi bo'lgan yangilik ID sini kiriting:")
@@ -212,13 +210,10 @@ async def delete_new(msg: Message, state: FSMContext):
         else:
             await msg.answer("Bunday ID li yangilik topilmadi.")
     except ValueError:
-        # Agar foydalanuvchi noto‘g‘ri qiymat kiritsa
         await msg.answer("Iltimos, faqat yangilik ID sini kiriting!")
     except Exception as e:
-        # Boshqa xatoliklar uchun
         await msg.answer(f"Xatolik yuz berdi: {e}")
     finally:
-        # Holatni tugatish
         await state.clear()
 # ------------------------------------------ View all news -----------------------------------------------
 @router_admin.message(F.text == "Barcha yangiliklarni ko'rish", Admin(ADMIN))
