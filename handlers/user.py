@@ -49,7 +49,6 @@ async def show_news(callback: CallbackQuery):
 async def show_hotdog_products(callback: CallbackQuery):
     await callback.message.delete()
 
-    # Hotdog category product get id
     products = await get_products_by_category(callback.data)
     pro_name = (callback.data).capitalize()
 
@@ -72,7 +71,7 @@ async def show_product_detail(callback: CallbackQuery):
             callback.from_user.id,
             photo=product_image,
             caption=f"Mahsulot nomi: {product_name}\nNarxi: {product_price} so'm\nTavsifi: {product_description}", # noqa
-            reply_markup=create_cart_button(product_id)  # cart add button
+            reply_markup=create_cart_button(product_id)  
         )
     else:
         await callback.answer("Bu mahsulot topilmadi.", show_alert=True) # noqa
@@ -98,7 +97,7 @@ async def show_cart(callback_query: CallbackQuery):
     print(cart_text[-6])
     print(total_price)
 
-    if cart_text:  # If the cart is not empty
+    if cart_text:
         cart_message = f"<b>Sizning savatingizdagi mahsulotlar:</b>\n\n{cart_text}\n\n<b>Jami:</b> {total_price} so'm \n count:{cart_text[-6]}" # noqa
         if callback_query.message.text:
             await callback_query.message.edit_text(text=cart_message, reply_markup=plusminus)
