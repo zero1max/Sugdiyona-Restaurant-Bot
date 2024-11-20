@@ -63,7 +63,7 @@ async def set_price(msg: Message, state: FSMContext):
     if not msg.text.isdigit():
         await msg.answer("Iltimos, to'g'ri narxni kiriting (raqam):")
         return
-    await state.update_data(price=float(msg.text))  # Narxni floatga o'tkazamiz
+    await state.update_data(price=float(msg.text))  
     await state.set_state(Product.image)
     await msg.answer('Mahsulotning rasmini yuboring:')
 
@@ -80,7 +80,6 @@ async def choice_menu(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await state.update_data(category=callback.data)
 
-    # Ma'lumotlarni olish
     data = await state.get_data()
     name = data['name']
     description = data['description']
@@ -96,12 +95,10 @@ async def choice_menu(callback: CallbackQuery, state: FSMContext):
 # ------------------------------------------ Delete products ------------------------------------------
 @router_admin.message(F.text == "Mahsulot o'chirish", Admin(ADMIN))
 async def view_products(msg: Message, state: FSMContext):
-    products = await get_all_products()  # Barcha mahsulotlarni olish
+    products = await get_all_products()  
     if products:
-        # Takrorlangan mahsulotlarni olib tashlash
         unique_products = {product['id']: product for product in products}.values()
 
-        # Mahsulotlarni formatlash
         product_list = "\n".join(
             [f"{product['id']}. {product['name']} - {product['price']} so'm" for product in unique_products]
         )
@@ -113,10 +110,8 @@ async def view_products(msg: Message, state: FSMContext):
 @router_admin.message(Delete_Pro_ID.id, Admin(ADMIN))
 async def delete_product_handler(msg: Message, state: FSMContext):
     try:
-        # Foydalanuvchining ID sini integerga o‘tkazish
         product_id = int(msg.text)
 
-        # Ma'lumotlar bazasidan mahsulotni o'chirish
         success = await delete_product(product_id)
 
         if success:
@@ -124,13 +119,10 @@ async def delete_product_handler(msg: Message, state: FSMContext):
         else:
             await msg.answer("Bunday ID li mahsulot topilmadi.")
     except ValueError:
-        # Agar foydalanuvchi noto‘g‘ri qiymat kiritsa
         await msg.answer("Iltimos, faqat mahsulot ID sini kiriting!")
     except Exception as e:
-        # Boshqa xatoliklar uchun
         await msg.answer(f"Xatolik yuz berdi: {e}")
     finally:
-        # Holatni tugatish
         await state.clear()
 
 
@@ -138,7 +130,7 @@ async def delete_product_handler(msg: Message, state: FSMContext):
 # ------------------------------------------ View all products ------------------------------------------
 @router_admin.message(F.text == "Barcha mahsulotlarni ko'rish", Admin(ADMIN))
 async def view_all_products(msg: Message):
-    products = await get_all_products()  # Barcha mahsulotlarni olish
+    products = await get_all_products()  
     if products:
         product_list = "\n".join(
             [f"{p['id']}. {p['name']} - {p['price']} so'm" for p in products]
