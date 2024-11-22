@@ -2,8 +2,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, Filter
 from aiogram import F
 from loader import router_admin
-from keyboards.default.main import menu_admin_default
-from keyboards.inline.main import menu_admin_inline
+from keyboards.default.main import *
+from keyboards.inline.main import *
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from database.news_db import *
@@ -63,7 +63,7 @@ async def set_price(msg: Message, state: FSMContext):
     if not msg.text.isdigit():
         await msg.answer("Iltimos, to'g'ri narxni kiriting (raqam):")
         return
-    await state.update_data(price=float(msg.text))  
+    await state.update_data(price=float(msg.text))  # Narxni floatga o'tkazamiz
     await state.set_state(Product.image)
     await msg.answer('Mahsulotning rasmini yuboring:')
 
@@ -80,6 +80,7 @@ async def choice_menu(callback: CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await state.update_data(category=callback.data)
 
+    # Ma'lumotlarni olish
     data = await state.get_data()
     name = data['name']
     description = data['description']
@@ -95,10 +96,12 @@ async def choice_menu(callback: CallbackQuery, state: FSMContext):
 # ------------------------------------------ Delete products ------------------------------------------
 @router_admin.message(F.text == "Mahsulot o'chirish", Admin(ADMIN))
 async def view_products(msg: Message, state: FSMContext):
-    products = await get_all_products()  
+    products = await get_all_products()  # Barcha mahsulotlarni olish
     if products:
+        # Takrorlangan mahsulotlarni olib tashlash
         unique_products = {product['id']: product for product in products}.values()
 
+        # Mahsulotlarni formatlash
         product_list = "\n".join(
             [f"{product['id']}. {product['name']} - {product['price']} so'm" for product in unique_products]
         )
@@ -110,8 +113,10 @@ async def view_products(msg: Message, state: FSMContext):
 @router_admin.message(Delete_Pro_ID.id, Admin(ADMIN))
 async def delete_product_handler(msg: Message, state: FSMContext):
     try:
+        # Foydalanuvchining ID sini integerga o‘tkazish
         product_id = int(msg.text)
 
+        # Ma'lumotlar bazasidan mahsulotni o'chirish
         success = await delete_product(product_id)
 
         if success:
@@ -119,10 +124,13 @@ async def delete_product_handler(msg: Message, state: FSMContext):
         else:
             await msg.answer("Bunday ID li mahsulot topilmadi.")
     except ValueError:
+        # Agar foydalanuvchi noto‘g‘ri qiymat kiritsa
         await msg.answer("Iltimos, faqat mahsulot ID sini kiriting!")
     except Exception as e:
+        # Boshqa xatoliklar uchun
         await msg.answer(f"Xatolik yuz berdi: {e}")
     finally:
+        # Holatni tugatish
         await state.clear()
 
 
@@ -130,19 +138,20 @@ async def delete_product_handler(msg: Message, state: FSMContext):
 # ------------------------------------------ View all products ------------------------------------------
 @router_admin.message(F.text == "Barcha mahsulotlarni ko'rish", Admin(ADMIN))
 async def view_all_products(msg: Message):
-    products = await get_all_products()  
+    products = await get_all_products()  # Barcha mahsulotlarni olish
     if products:
         product_list = "\n".join(
             [f"{p['id']}. {p['name']} - {p['price']} so'm" for p in products]
         )
-        await msg.answer(f"Barcha mahsulotlar:\n{product_list}")
+        await msg.answer(f"Barcha mahsulotlar:\n{product_list}", reply_markup=products_key_admin)
     else:
         await msg.answer("Hech qanday mahsulot topilmadi.")
 
 # ---------------------------------------------- News Add ---------------------------------------------------
 @router_admin.message(F.text == "Yangilik qo'shish", Admin(ADMIN))
 async def add_news(msg: Message, state: FSMContext):
-    news_items = await get_all_news()  
+    # Retrieve all existing news
+    news_items = await get_all_news()  # Yangiliklarni olish
     if news_items:
         news_list = "\n".join([f"{n[0]}. {n[1]} - {n[2]}" for n in news_items])
         await msg.answer(f"Mavjud yangiliklar:\n{news_list}\n\nYangi yangilikning sarlavhasini kiriting:")
@@ -182,7 +191,8 @@ async def news_image_set(msg: Message, state: FSMContext):
 # ------------------------------------------ News Delete ------------------------------------------------
 @router_admin.message(F.text == "Yangilik o'chirish", Admin(ADMIN))
 async def add_news(msg: Message, state: FSMContext):
-    news_items = await get_all_news()
+    # Retrieve all existing news
+    news_items = await get_all_news()  # Yangiliklarni olish
     if news_items:
         news_list = "\n".join([f"{n[0]}. {n[1]} - {n[2]}" for n in news_items])
         await msg.answer(f"Mavjud yangiliklar:\n{news_list}\n\nO'chirmoqchi bo'lgan yangilik ID sini kiriting:")
@@ -202,10 +212,13 @@ async def delete_new(msg: Message, state: FSMContext):
         else:
             await msg.answer("Bunday ID li yangilik topilmadi.")
     except ValueError:
+        # Agar foydalanuvchi noto‘g‘ri qiymat kiritsa
         await msg.answer("Iltimos, faqat yangilik ID sini kiriting!")
     except Exception as e:
+        # Boshqa xatoliklar uchun
         await msg.answer(f"Xatolik yuz berdi: {e}")
     finally:
+        # Holatni tugatish
         await state.clear()
 # ------------------------------------------ View all news -----------------------------------------------
 @router_admin.message(F.text == "Barcha yangiliklarni ko'rish", Admin(ADMIN))
@@ -219,6 +232,13 @@ async def view_all_news(msg: Message):
                 for n in news
             ]
         )
-        await msg.answer(f"Barcha yangiliklar:\n\n{news_list}")
+        await msg.answer(f"Barcha yangiliklar:\n\n{news_list}", reply_markup=news_key_admin)
     else:
         await msg.answer("Hech qanday yangilik topilmadi!")
+
+
+# -------------------------------------------- Back Menu --------------------------------------------
+
+@router_admin.message(F.text == 'Ortga qaytish')
+async def back_menu_admin(msg: Message):
+    await msg.answer("Menyuga qaytdingiz!", reply_markup = menu_admin_default)
