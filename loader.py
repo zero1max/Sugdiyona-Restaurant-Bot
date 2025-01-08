@@ -3,6 +3,7 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from config import TOKEN
 
+# db_pro = Database_Product()
 dp = Dispatcher()
 router_admin = Router()
 router_user = Router()

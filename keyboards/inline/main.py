@@ -8,7 +8,8 @@ main_menu = InlineKeyboardMarkup(
             InlineKeyboardButton(text='Sozlamalar', callback_data='sozlamalar')
         ],
         [InlineKeyboardButton(text='Joy zakar qilish', callback_data='bronqilish')]
-    ])
+    ]
+)
 
 menu_admin_inline = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -24,7 +25,8 @@ menu_admin_inline = InlineKeyboardMarkup(
             InlineKeyboardButton(text='Lavash', callback_data='lavash'),
             InlineKeyboardButton(text='KFC', callback_data='kfc')
         ]
-    ])
+    ]
+)
 
 menu = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -42,45 +44,54 @@ menu = InlineKeyboardMarkup(
             InlineKeyboardButton(text='KFC', callback_data='kfc')
         ],
         [InlineKeyboardButton(text='Asosiy Menyu', callback_data='asosiymenyu')]
-    ])
+    ]
+)
 
 back_menu = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text='Orqaga qaytish', callback_data='back')]
-    ])
+    ]
+)
 
 asosiymenu = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text='Asosiy Menyu', callback_data='asosiymenyu')]
-    ])
+    ]
+)
 
 savat = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text="Savatga qo'shish📥", callback_data='savesavat')],
         [InlineKeyboardButton(text='Savat🛒', callback_data='savat')]
-    ])
+    ]
+)
 
 plusminus = InlineKeyboardMarkup(
     inline_keyboard=[
         [InlineKeyboardButton(text='➖', callback_data='decrease'), InlineKeyboardButton(text='➕', callback_data='increase')],
         [InlineKeyboardButton(text="Tayyor✅", callback_data='tayyor')]
-    ])
+    ]
+)
 
 def create_product_keyboard(products):
     buttons = []
     row = []  
+
     for index, product in enumerate(products):
         button = InlineKeyboardButton(
             text=f"{product[1]}", 
             callback_data=f"product_{product[0]}"
         )
         row.append(button)
+
         if len(row) == 2 or index == len(products) - 1:
             buttons.append(row)
             row = []  
+
     if products:
         back_button = [InlineKeyboardButton(text='Orqaga qaytish', callback_data='back')]
         buttons.append(back_button)
+
     inline_kb = InlineKeyboardMarkup(inline_keyboard=buttons)
     return inline_kb
 
