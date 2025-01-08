@@ -1,4 +1,4 @@
-# Sugdiyona-Restaurant-Bot[requirements.txt](requirements.txt)
+# Sugdiyona-Restaurant-Bot
 
 <h2>First</h2>
 
